@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# 1. 检查输入参数
+if [ $# -lt 1 ]; then
+    echo "用法: $0 <文件路径> [压缩级别 0-9]" >&2
+    echo "       (若未指定压缩级别，则不压缩)" >&2
+    exit 1
+fi
+
+FILE_PATH="$1"
+COMPRESSION_LEVEL="$2"
+
+# 2. 验证文件可读性
+if [ ! -r "$FILE_PATH" ]; then
+    echo "错误: 文件 '$FILE_PATH' 不存在或不可读。" >&2
+    exit 1
+fi
+
+ENCODED_DATA=""
+CMD_STATUS=0
+
+# 3. 处理数据并生成命令
+if [ -n "$COMPRESSION_LEVEL" ]; then
+    # 3a. 提供了压缩级别
+    if ! [[ "$COMPRESSION_LEVEL" =~ ^[0-9]$ ]]; then
+        echo "错误: 压缩级别必须是 0 到 9 的数字。" >&2
+        exit 1
+    fi
+    
+    # 压缩并编码数据
+    ENCODED_DATA=$(cat "$FILE_PATH" | xz "-$COMPRESSION_LEVEL" -c | base64 -w 0)
+    CMD_STATUS=$?
+    
+    if [ $CMD_STATUS -ne 0 ]; then
+        echo "错误: 压缩或Base64编码失败。" >&2
+        exit 1
+    fi
+    
+    # 生成带解压的命令
+    printf "echo '%s' | base64 -d | xz -d -c > '%s'\n" "$ENCODED_DATA" "$FILE_PATH"
+else
+    # 3b. 未提供压缩级别
+    
+    # 仅编码数据
+    ENCODED_DATA=$(cat "$FILE_PATH" | base64 -w 0)
+    CMD_STATUS=$?
+
+    if [ $CMD_STATUS -ne 0 ]; then
+        echo "错误: Base64编码失败。" >&2
+        exit 1
+    fi
+    
+    # 生成不带解压的命令
+    printf "echo '%s' | base64 -d > '%s'\n" "$ENCODED_DATA" "$FILE_PATH"
+fi
