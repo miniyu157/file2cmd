@@ -26,21 +26,21 @@ if [ -n "$COMPRESSION_LEVEL" ]; then
         echo "错误: 压缩级别必须是 0 到 9 的数字。" >&2
         exit 1
     fi
-    
+
     # 压缩并编码数据
     ENCODED_DATA=$(cat "$FILE_PATH" | xz "-$COMPRESSION_LEVEL" -c | base64 -w 0)
     CMD_STATUS=$?
-    
+
     if [ $CMD_STATUS -ne 0 ]; then
         echo "错误: 压缩或Base64编码失败。" >&2
         exit 1
     fi
-    
+
     # 生成带解压的命令
     printf "echo '%s' | base64 -d | xz -d -c > '%s'\n" "$ENCODED_DATA" "$FILE_PATH"
 else
     # 3b. 未提供压缩级别
-    
+
     # 仅编码数据
     ENCODED_DATA=$(cat "$FILE_PATH" | base64 -w 0)
     CMD_STATUS=$?
@@ -49,7 +49,7 @@ else
         echo "错误: Base64编码失败。" >&2
         exit 1
     fi
-    
+
     # 生成不带解压的命令
     printf "echo '%s' | base64 -d > '%s'\n" "$ENCODED_DATA" "$FILE_PATH"
 fi
